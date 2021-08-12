@@ -1,6 +1,6 @@
 require('@tensorflow/tfjs-node');
 const tf = require('@tensorflow/tfjs');
-const loadCSV = require('./load-csv');
+const loadCSV = require('../utils/load-csv');
 const tf_knn = require('./tf_knn');
 
 const useSmallData = false;
