@@ -9,28 +9,33 @@ let { features, labels, testFeatures, testLabels } = loadCSV(
   {
     shuffle: true,
     splitTest: 50,
-    // dataColumns: ['horsepower', 'weight', 'displacement'],
-    dataColumns: ['horsepower'],
+    dataColumns: ['horsepower', 'weight', 'displacement'],
+    // dataColumns: ['horsepower'],
     labelColumns: ['mpg'],
   }
 );
-console.log(`[M@][index] starting`); // M@: logging
-const regression = new LinearRegression(features, labels, {
-  learningRate: 0.001,
-  iterations: 10,
+
+const iterations = 25;
+
+// set up an instance
+const regression = new LinearRegression(features, labels);
+// train multiple values
+// [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].forEach(learningRate =>
+//   doTrain(learningRate)
+// );
+doTrain(0.1, iterations);
+
+plot({
+  x: regression.mseHistory.reverse(),
+  xLabel: 'Iteration #',
+  yLabel: 'Mean Squared Error',
 });
 
-regression.train();
-console.log(`[M@][index] m, b `, regression.m, regression.b); // M@: logging
-
-// const r2 = regression.test(testFeatures, testLabels);
-
-// plot({
-//   x: regression.mseHistory.reverse(),
-//   xLabel: 'Iteration #',
-//   yLabel: 'Mean Squared Error',
-// });
-
-// console.log('R2 is', r2);
-
-// regression.predict([[120, 2, 380]]).print();
+// callable TRAINER
+function doTrain(learningRate, iterations) {
+  regression.options.learningRate = learningRate ?? 0.0001;
+  regression.options.iterations = iterations ?? 100;
+  regression.train();
+  const r2 = regression.test(testFeatures, testLabels);
+  console.log(`[${learningRate}] R2 :`, r2);
+}
