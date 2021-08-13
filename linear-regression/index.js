@@ -15,14 +15,12 @@ let { features, labels, testFeatures, testLabels } = loadCSV(
   }
 );
 
-const iterations = 25;
+const enableTesting = false;
+const iterations = 30;
 
 // set up an instance
 const regression = new LinearRegression(features, labels);
-// train multiple values
-// [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].forEach(learningRate =>
-//   doTrain(learningRate)
-// );
+
 doTrain(0.1, iterations);
 
 plot({
@@ -31,11 +29,21 @@ plot({
   yLabel: 'Mean Squared Error',
 });
 
+regression
+  .predict([
+    [120, 2, 380],
+    [135, 2.1, 420],
+  ])
+  .print();
+
+/** HELPERS */
 // callable TRAINER
 function doTrain(learningRate, iterations) {
   regression.options.learningRate = learningRate ?? 0.0001;
   regression.options.iterations = iterations ?? 100;
   regression.train();
-  const r2 = regression.test(testFeatures, testLabels);
-  console.log(`[${learningRate}] R2 :`, r2);
+  if (enableTesting) {
+    const r2 = regression.test(testFeatures, testLabels);
+    console.log(`[${learningRate}] R2 :`, r2);
+  }
 }
