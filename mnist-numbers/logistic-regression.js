@@ -33,7 +33,7 @@ class LogisticRegression {
       .matMul(differences)
       .div(features.shape[0]);
 
-    this.weights = this.weights.sub(slopes.mul(this.options.learningRate));
+    return this.weights.sub(slopes.mul(this.options.learningRate));
   }
 
   train() {
@@ -43,15 +43,17 @@ class LogisticRegression {
 
     for (let i = 0; i < this.options.iterations; i++) {
       for (let j = 0; j < batchQuantity; j++) {
-        const featureBatch = this.features.slice(
-          [batchSize * j, 0],
-          [batchSize, -1]
-        );
-        const labelBatch = this.labels.slice(
-          [batchSize * j, 0],
-          [batchSize, -1]
-        );
-        this.gradientDescent(featureBatch, labelBatch);
+        this.weights = tf.tidy(() => {
+          const featureBatch = this.features.slice(
+            [batchSize * j, 0],
+            [batchSize, -1]
+          );
+          const labelBatch = this.labels.slice(
+            [batchSize * j, 0],
+            [batchSize, -1]
+          );
+          return this.gradientDescent(featureBatch, labelBatch);
+        });
       }
 
       this.recordCost();
@@ -74,11 +76,13 @@ class LogisticRegression {
     if (this.mean === undefined) {
       const { mean, variance } = tf.moments(features, 0);
       this.mean = mean;
+
       // deal with 0-variances
       const filler = variance.cast('bool').logicalNot().cast('float32');
 
       this.variance = variance.add(filler);
     }
+
     return features.sub(this.mean).div(this.variance.pow(0.5));
   }
 
@@ -102,20 +106,19 @@ class LogisticRegression {
   }
 
   recordCost() {
-    const guesses = this.features.matMul(this.weights).softmax();
-    const termOne = this.labels.transpose().matMul(guesses.log());
-    const termTwo = this.labels
-      .mul(-1)
-      .add(1)
-      .transpose()
-      .matMul(guesses.mul(-1).add(1).log());
+    // clean up our memory (tensors)
+    const cost = tf.tidy(() => {
+      const guesses = this.features.matMul(this.weights).softmax();
+      const termOne = this.labels.transpose().matMul(guesses.add(1e-7).log());
+      const termTwo = this.labels
+        .mul(-1)
+        .add(1)
+        .transpose()
+        .matMul(guesses.mul(-1).add(1).add(1e-7).log());
+      // adding a tiny constant (1e-7) to avoid log(0)
 
-    const cost = termOne
-      .add(termTwo)
-      .div(this.features.shape[0])
-      .mul(-1)
-      .get(0, 0);
-
+      return termOne.add(termTwo).div(this.features.shape[0]).mul(-1).get(0, 0);
+    });
     // put most recent on the front
     this.costHistory.unshift(cost);
   }
